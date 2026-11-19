@@ -1,3 +1,4 @@
+const auth = require('../middlewares/auth')
 const express = require('express')
 const router = express.Router()
 const { dataSource } = require('../db/data-source')
@@ -108,6 +109,50 @@ router.delete('/:creditPackageId', async (req, res, next) => {
 
     res.status(200).json({
       status: 'success'
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// 會員購買方案：POST /api/credit-package/:creditPackageId
+router.post('/:creditPackageId', auth, async (req, res, next) => {
+  try {
+    const { creditPackageId } = req.params
+    if (
+      isUndefined(creditPackageId) ||
+      isNotValidString(creditPackageId) ||
+      isNotValidUuid(creditPackageId)
+    ) {
+      return res.status(400).json({
+        status: 'failed',
+        message: 'ID錯誤'
+      })
+    }
+
+    const packageRepo = dataSource.getRepository('CreditPackage')
+    const creditPackage = await packageRepo.findOne({
+      where: { id: creditPackageId }
+    })
+    if (!creditPackage) {
+      return res.status(400).json({
+        status: 'failed',
+        message: 'ID錯誤'
+      })
+    }
+
+    const purchaseRepo = dataSource.getRepository('CreditPurchase')
+    const newPurchase = purchaseRepo.create({
+      user_id: req.user.id,
+      credit_package_id: creditPackage.id,
+      purchased_credits: creditPackage.credit_amount,
+      price_paid: creditPackage.price
+    })
+    await purchaseRepo.save(newPurchase)
+
+    res.status(201).json({
+      status: 'success',
+      data: null
     })
   } catch (error) {
     next(error)

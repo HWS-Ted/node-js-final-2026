@@ -279,4 +279,86 @@ router.put('/password', auth, async (req, res, next) => {
   }
 })
 
+// 取得會員購買方案紀錄：GET /api/users/credit-package
+router.get('/credit-package', auth, async (req, res, next) => {
+  try {
+    const purchaseRepo = dataSource.getRepository('CreditPurchase')
+    const purchases = await purchaseRepo.find({
+      where: { user_id: req.user.id },
+      relations: {
+        creditPackage: true
+      },
+      order: {
+        purchase_at: 'DESC'
+      }
+    })
+
+    const data = purchases.map((item) => ({
+      purchased_credits: item.purchased_credits,
+      price_paid: Number(item.price_paid),
+      name: item.creditPackage ? item.creditPackage.name : '',
+      purchase_at: item.purchase_at
+    }))
+
+    res.status(200).json({
+      status: 'success',
+      data
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// 取得會員已報名課表與剩餘堂數：GET /api/users/courses
+router.get('/courses', auth, async (req, res, next) => {
+  try {
+    const purchaseRepo = dataSource.getRepository('CreditPurchase')
+    const purchases = await purchaseRepo.find({
+      where: { user_id: req.user.id }
+    })
+    const totalPurchased = purchases.reduce(
+      (sum, item) => sum + Number(item.purchased_credits),
+      0
+    )
+
+    const bookingRepo = dataSource.getRepository('CourseBooking')
+    const bookings = await bookingRepo.find({
+      where: { user_id: req.user.id },
+      relations: {
+        course: {
+          user: true
+        }
+      },
+      order: {
+        booking_at: 'DESC'
+      }
+    })
+
+    const creditUsage = bookings.filter((b) => !b.cancelled_at).length
+    const creditRemain = totalPurchased - creditUsage
+
+    const courseBooking = bookings.map((b) => ({
+      course_id: b.course_id,
+      name: b.course ? b.course.name : '',
+      coach_name: b.course && b.course.user ? b.course.user.name : '',
+      start_at: b.course ? b.course.start_at : null,
+      end_at: b.course ? b.course.end_at : null,
+      meeting_url: b.course ? b.course.meeting_url : null,
+      booking_at: b.booking_at,
+      cancelled_at: b.cancelled_at
+    }))
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        credit_remain: creditRemain,
+        credit_usage: creditUsage,
+        course_booking: courseBooking
+      }
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 module.exports = router
