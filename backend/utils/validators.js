@@ -10,6 +10,10 @@ function isNotValidInteger(value) {
   return typeof value !== 'number' || !Number.isInteger(value) || value <= 0
 }
 
+function isNotValidNonNegativeInteger(value) {
+  return typeof value !== 'number' || !Number.isInteger(value) || value < 0
+}
+
 function isNotValidUuid(value) {
   if (typeof value !== 'string') return true
   const uuidRegex =
@@ -29,11 +33,22 @@ function isValidEmail(value) {
   return emailPattern.test(value)
 }
 
+function isNotValidHttpsUrl(value) {
+  return isNotValidString(value) || !value.startsWith('https://')
+}
+
+function isValidDateString(value) {
+  return !isNotValidString(value) && !Number.isNaN(Date.parse(value))
+}
+
 module.exports = {
   isUndefined,
   isNotValidString,
   isNotValidInteger,
+  isNotValidNonNegativeInteger,
   isNotValidUuid,
   isValidPassword,
-  isValidEmail
+  isValidEmail,
+  isNotValidHttpsUrl,
+  isValidDateString
 }
