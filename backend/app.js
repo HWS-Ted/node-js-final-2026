@@ -3,6 +3,9 @@ const cors = require('cors')
 const config = require('./config/index')
 const { dataSource } = require('./db/data-source')
 
+const skillRouter = require('./routes/skill')
+const creditPackageRouter = require('./routes/creditPackage')
+
 const app = express()
 
 app.use(cors())
@@ -15,6 +18,9 @@ app.get('/healthcheck', (req, res) => {
   }
   res.status(200).send('OK')
 })
+
+app.use('/api/coaches/skill', skillRouter)
+app.use('/api/credit-package', creditPackageRouter)
 
 app.use((err, req, res, next) => {
   console.error(err)
