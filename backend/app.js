@@ -7,6 +7,8 @@ const skillRouter = require('./routes/skill')
 const creditPackageRouter = require('./routes/creditPackage')
 const usersRouter = require('./routes/users')
 const adminRouter = require('./routes/admin')
+const coachesRouter = require('./routes/coaches')
+const coursesRouter = require('./routes/courses')
 
 const app = express()
 
@@ -22,9 +24,11 @@ app.get('/healthcheck', (req, res) => {
 })
 
 app.use('/api/coaches/skill', skillRouter)
+app.use('/api/coaches', coachesRouter)
 app.use('/api/credit-package', creditPackageRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/admin/coaches', adminRouter)
+app.use('/api/courses', coursesRouter)
 
 app.use((err, req, res, next) => {
   console.error(err)
