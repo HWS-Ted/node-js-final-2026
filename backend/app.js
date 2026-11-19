@@ -5,6 +5,7 @@ const { dataSource } = require('./db/data-source')
 
 const skillRouter = require('./routes/skill')
 const creditPackageRouter = require('./routes/creditPackage')
+const usersRouter = require('./routes/users')
 
 const app = express()
 
@@ -21,6 +22,7 @@ app.get('/healthcheck', (req, res) => {
 
 app.use('/api/coaches/skill', skillRouter)
 app.use('/api/credit-package', creditPackageRouter)
+app.use('/api/users', usersRouter)
 
 app.use((err, req, res, next) => {
   console.error(err)
