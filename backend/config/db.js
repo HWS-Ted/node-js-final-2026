@@ -4,6 +4,6 @@ module.exports = {
   username: process.env.DB_USERNAME || 'student',
   password: process.env.DB_PASSWORD || 'student666',
   database: process.env.DB_DATABASE || 'fitness',
-  synchronize: process.env.DB_SYNCHRONIZE === 'true',
+  synchronize: process.env.DB_SYNCHRONIZE === 'false',
   ssl: process.env.DB_ENABLE_SSL === 'true'
 }
