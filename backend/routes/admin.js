@@ -2,6 +2,21 @@ const express = require('express')
 const { In, IsNull } = require('typeorm')
 const router = express.Router()
 
+const MONTH_MAP = {
+  january: 0,
+  february: 1,
+  march: 2,
+  april: 3,
+  may: 4,
+  june: 5,
+  july: 6,
+  august: 7,
+  september: 8,
+  october: 9,
+  november: 10,
+  december: 11
+}
+
 const { dataSource } = require('../db/data-source')
 const auth = require('../middlewares/auth')
 const isCoach = require('../middlewares/isCoach')
@@ -275,6 +290,108 @@ router.put('/courses/:courseId', auth, isCoach, async (req, res, next) => {
       status: 'success',
       data: {
         course: updatedCourse
+      }
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// 取得教練月營收統計：GET /api/admin/coaches/revenue?month=january
+router.get('/revenue', auth, isCoach, async (req, res, next) => {
+  try {
+    const { month } = req.query
+    if (
+      isUndefined(month) ||
+      isNotValidString(month) ||
+      !Object.prototype.hasOwnProperty.call(MONTH_MAP, month)
+    ) {
+      return res.status(400).json({
+        status: 'failed',
+        message: '欄位未填寫正確'
+      })
+    }
+
+    const courseRepo = dataSource.getRepository('Course')
+    const courses = await courseRepo.find({
+      select: { id: true },
+      where: { user_id: req.user.id }
+    })
+
+    if (courses.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          total: {
+            revenue: 0,
+            participants: 0,
+            course_count: 0
+          }
+        }
+      })
+    }
+
+    const courseIds = courses.map((course) => course.id)
+    const bookingRepo = dataSource.getRepository('CourseBooking')
+    const activeBookings = await bookingRepo.find({
+      where: {
+        course_id: In(courseIds),
+        cancelled_at: IsNull()
+      }
+    })
+
+    const year = new Date().getFullYear()
+    const monthIndex = MONTH_MAP[month]
+    const startDate = new Date(year, monthIndex, 1)
+    const endDate = new Date(year, monthIndex + 1, 1)
+
+    const monthBookings = activeBookings.filter((booking) => {
+      const createdAt = new Date(booking.created_at)
+      return createdAt >= startDate && createdAt < endDate
+    })
+
+    const courseCount = monthBookings.length
+    const participants = new Set(monthBookings.map((b) => b.user_id)).size
+
+    if (courseCount === 0) {
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          total: {
+            revenue: 0,
+            participants: 0,
+            course_count: 0
+          }
+        }
+      })
+    }
+
+    const packageRepo = dataSource.getRepository('CreditPackage')
+    const packages = await packageRepo.find({
+      select: {
+        credit_amount: true,
+        price: true
+      }
+    })
+
+    let totalPrice = 0
+    let totalCredits = 0
+    for (const pkg of packages) {
+      totalPrice += Number(pkg.price)
+      totalCredits += Number(pkg.credit_amount)
+    }
+
+    const perCreditPrice = totalCredits > 0 ? totalPrice / totalCredits : 0
+    const revenue = Math.floor(courseCount * perCreditPrice)
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        total: {
+          revenue,
+          participants,
+          course_count: courseCount
+        }
       }
     })
   } catch (error) {
